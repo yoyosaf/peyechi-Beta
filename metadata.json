@@ -1,0 +1,8 @@
+{
+  "name": "Peyechi - Bangladesh Lost & Found Network",
+  "description": "Connecting people across Bangladesh to find lost items and return found belongings safely with verification questions and anti-scam protections.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
+
+
