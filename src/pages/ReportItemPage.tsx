@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { BANGLADESH_DIVISIONS, ITEM_CATEGORIES } from '../data/bangladeshData';
 import { apiClient, ItemType } from '../lib/apiClient';
+import { firebaseService } from '../lib/firebaseService';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 
@@ -25,7 +26,7 @@ export const ReportItemPage: React.FC<ReportItemPageProps> = ({
   onSuccess,
   onCancel
 }) => {
-  const { user } = useAuth();
+  const { user, isSuspended } = useAuth();
   const { language, t } = useLanguage();
 
   const [type, setType] = useState<ItemType>(initialType);
@@ -39,11 +40,13 @@ export const ReportItemPage: React.FC<ReportItemPageProps> = ({
   const [description, setDescription] = useState('');
   const [secretQuestion, setSecretQuestion] = useState('');
   const [reward, setReward] = useState<string>('');
-  const [contactName, setContactName] = useState(user?.name || '');
-  const [contactPhone, setContactPhone] = useState(user?.phone || '');
+  const [contactName, setContactName] = useState(user?.displayName || '');
+  const [contactPhone, setContactPhone] = useState(user?.phoneNumber || '');
   const [contactEmail, setContactEmail] = useState(user?.email || '');
   const [hidePhonePublicly, setHidePhonePublicly] = useState(false);
+  const [imageFile, setImageFile] = useState<File | null>(null);
   const [imageUrl, setImageUrl] = useState('');
+  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
 
@@ -73,6 +76,16 @@ export const ReportItemPage: React.FC<ReportItemPageProps> = ({
   const handleImageFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+        setError('Please select a valid image file (JPEG, PNG, or WebP).');
+        return;
+      }
+      if (file.size > 2 * 1024 * 1024) {
+        setError('Image file is too large. Maximum size is 2MB.');
+        return;
+      }
+      setError('');
+      setImageFile(file);
       const reader = new FileReader();
       reader.onloadend = () => {
         setImageUrl(reader.result as string);
@@ -81,8 +94,12 @@ export const ReportItemPage: React.FC<ReportItemPageProps> = ({
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSuspended) {
+      setError('Your account has been suspended by an administrator. You cannot post new listings.');
+      return;
+    }
     if (!title.trim() || !contactName.trim() || !contactPhone.trim()) {
       setError('Please fill in the item title, your name, and phone number.');
       return;
@@ -92,6 +109,42 @@ export const ReportItemPage: React.FC<ReportItemPageProps> = ({
     setError('');
 
     try {
+      let finalImageUrl = imageUrl;
+      if (imageFile && user?.uid) {
+        setUploadProgress(10);
+        finalImageUrl = await firebaseService.uploadImage(imageFile, user.uid, (p) => setUploadProgress(p));
+      }
+
+      // Save via firebaseService
+      const postDoc = await firebaseService.createPost(
+        {
+          userId: user?.uid || 'usr_guest_' + Date.now(),
+          authorName: contactName.trim(),
+          postType: type === 'lost' ? 'LOST' : 'FOUND',
+          category,
+          title: title.trim(),
+          description: description.trim(),
+          division,
+          district,
+          upazilaThana: thana,
+          generalLocation: areaDetails.trim(),
+          eventDate: date,
+          imageUrls: finalImageUrl ? [finalImageUrl] : [],
+          preferredContactMethod: hidePhonePublicly ? 'PLATFORM_CLAIM' : 'PHONE',
+          secretQuestion: secretQuestion.trim() || undefined,
+          reward: reward ? parseInt(reward, 10) : undefined
+        },
+        {
+          contactMethod: hidePhonePublicly ? 'PLATFORM_CLAIM' : 'PHONE',
+          contactInfo: contactPhone.trim()
+        },
+        {
+          uid: user?.uid || 'usr_guest',
+          name: contactName.trim()
+        }
+      );
+
+      // Also sync with apiClient for instant UI consistency
       const created = apiClient.createItem({
         type,
         title: title.trim(),
@@ -102,23 +155,24 @@ export const ReportItemPage: React.FC<ReportItemPageProps> = ({
         areaDetails: areaDetails.trim(),
         date,
         description: description.trim(),
-        imageUrl: imageUrl || undefined,
+        imageUrl: finalImageUrl || undefined,
         secretQuestion: secretQuestion.trim() || undefined,
         reward: reward ? parseInt(reward, 10) : undefined,
         contactName: contactName.trim(),
         contactPhone: contactPhone.trim(),
         contactEmail: contactEmail.trim(),
         hidePhonePublicly,
-        userId: user?.id || 'usr_guest_' + Date.now()
+        userId: user?.uid || 'usr_guest_' + Date.now()
       });
 
       setSubmitting(false);
-      onSuccess(created.id);
-    } catch {
+      onSuccess(created.id || postDoc.id);
+    } catch (err: unknown) {
       setSubmitting(false);
-      setError('An error occurred while saving the report. Please try again.');
+      setError((err as Error).message || 'An error occurred while saving the report.');
     }
   };
+
 
   return (
     <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8 space-y-6">

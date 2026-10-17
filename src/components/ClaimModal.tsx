@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { X, ShieldCheck, AlertCircle, HelpCircle } from 'lucide-react';
 import { LostFoundItem, apiClient } from '../lib/apiClient';
+import { firebaseService } from '../lib/firebaseService';
 import { useLanguage } from '../context/LanguageContext';
 import { useAuth } from '../context/AuthContext';
 
@@ -18,20 +19,24 @@ export const ClaimModal: React.FC<ClaimModalProps> = ({
   onClaimSuccess
 }) => {
   const { t } = useLanguage();
-  const { user } = useAuth();
+  const { user, isSuspended } = useAuth();
 
   const [answer, setAnswer] = useState('');
   const [proofNotes, setProofNotes] = useState('');
-  const [name, setName] = useState(user?.name || '');
-  const [phone, setPhone] = useState(user?.phone || '');
+  const [name, setName] = useState(user?.displayName || '');
+  const [phone, setPhone] = useState(user?.phoneNumber || '');
   const [email, setEmail] = useState(user?.email || '');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
 
   if (!isOpen) return null;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSuspended) {
+      setError('Your account is currently suspended and cannot submit claims.');
+      return;
+    }
     if (!name.trim() || !phone.trim()) {
       setError('Please provide your name and phone number.');
       return;
@@ -43,16 +48,27 @@ export const ClaimModal: React.FC<ClaimModalProps> = ({
 
     setSubmitting(true);
     try {
+      await firebaseService.createClaim({
+        postId: item.id,
+        postTitle: item.title,
+        claimantUserId: user?.uid || 'usr_guest_' + Date.now(),
+        claimantName: name.trim(),
+        verificationDetails: answer.trim() + (proofNotes ? ` | Notes: ${proofNotes.trim()}` : ''),
+        contactMethod: 'PHONE',
+        contactInfo: `${phone.trim()}${email ? ` (${email.trim()})` : ''}`
+      });
+
       apiClient.createClaim({
         itemId: item.id,
         itemTitle: item.title,
-        claimantId: user?.id || 'usr_guest_' + Date.now(),
-        claimantName: name,
-        claimantPhone: phone,
-        claimantEmail: email,
+        claimantId: user?.uid || 'usr_guest_' + Date.now(),
+        claimantName: name.trim(),
+        claimantPhone: phone.trim(),
+        claimantEmail: email.trim(),
         answer: answer.trim(),
         proofNotes: proofNotes.trim()
       });
+
       setSubmitting(false);
       onClaimSuccess();
       onClose();

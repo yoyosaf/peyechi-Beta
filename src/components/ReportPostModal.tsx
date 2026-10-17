@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { X, Flag, AlertTriangle } from 'lucide-react';
 import { LostFoundItem, apiClient } from '../lib/apiClient';
+import { firebaseService } from '../lib/firebaseService';
 import { useAuth } from '../context/AuthContext';
 
 interface ReportPostModalProps {
@@ -23,15 +24,29 @@ export const ReportPostModal: React.FC<ReportPostModalProps> = ({
 
   if (!isOpen) return null;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    apiClient.reportPost({
-      itemId: item.id,
-      itemTitle: item.title,
-      reportedBy: user?.name || 'Anonymous User',
-      reason,
-      details: details.trim()
-    });
+    try {
+      await firebaseService.createReport({
+        postId: item.id,
+        postTitle: item.title,
+        reporterUserId: user?.uid || 'usr_guest_' + Date.now(),
+        reporterName: user?.displayName || 'Anonymous User',
+        reason,
+        description: details.trim()
+      });
+
+      apiClient.reportPost({
+        itemId: item.id,
+        itemTitle: item.title,
+        reportedBy: user?.displayName || 'Anonymous User',
+        reason,
+        details: details.trim()
+      });
+    } catch {
+      // fallback
+    }
+
     setSubmitted(true);
     setTimeout(() => {
       onSuccess();

@@ -17,7 +17,7 @@ export const MyClaimsPage: React.FC<MyClaimsPageProps> = ({
   const { t } = useLanguage();
 
   const allClaims = apiClient.getClaims();
-  const myClaims = allClaims.filter((c) => c.claimantId === user?.id || (user?.email && c.claimantEmail === user.email));
+  const myClaims = allClaims.filter((c) => c.claimantId === user?.uid || (user?.email && c.claimantEmail === user.email));
   const allItems = apiClient.getItems();
 
   return (

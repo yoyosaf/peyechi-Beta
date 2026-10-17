@@ -93,9 +93,9 @@ export const Navbar: React.FC<NavbarProps> = ({
                   className="flex items-center gap-2 p-1.5 text-xs font-medium rounded-lg hover:bg-slate-100 text-slate-700 transition-colors cursor-pointer"
                 >
                   <div className="w-7 h-7 rounded-full bg-emerald-100 text-emerald-800 flex items-center justify-center font-bold text-xs">
-                    {user.name.charAt(0).toUpperCase()}
+                    {(user.displayName || (user as unknown as { name?: string }).name || 'M').charAt(0).toUpperCase()}
                   </div>
-                  <span className="hidden lg:inline max-w-[120px] truncate">{user.name}</span>
+                  <span className="hidden lg:inline max-w-[120px] truncate">{user.displayName || (user as unknown as { name?: string }).name}</span>
                 </button>
 
                 {userMenuOpen && (
@@ -104,8 +104,8 @@ export const Navbar: React.FC<NavbarProps> = ({
                     onMouseLeave={() => setUserMenuOpen(false)}
                   >
                     <div className="px-3 py-2 border-b border-slate-100">
-                      <p className="font-semibold text-slate-900 truncate">{user.name}</p>
-                      <p className="text-slate-500 text-[11px] truncate">{user.phone || user.email}</p>
+                      <p className="font-semibold text-slate-900 truncate">{user.displayName || (user as unknown as { name?: string }).name}</p>
+                      <p className="text-slate-500 text-[11px] truncate">{user.phoneNumber || (user as unknown as { phone?: string }).phone || user.email}</p>
                     </div>
 
                     <button

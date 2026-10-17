@@ -33,7 +33,7 @@ export const MyPostsPage: React.FC<MyPostsPageProps> = ({
   const [expandedItemId, setExpandedItemId] = useState<string | null>(null);
 
   // Filter items belonging to current user (or demo items if matching)
-  const myItems = items.filter((i) => i.userId === user?.id || (user?.email && i.contactEmail === user.email));
+  const myItems = items.filter((i) => i.userId === user?.uid || (user?.email && i.contactEmail === user.email));
 
   const toggleItemStatus = (itemId: string, currentStatus: string) => {
     const nextStatus = currentStatus === 'active' ? 'resolved' : 'active';
