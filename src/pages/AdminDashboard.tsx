@@ -26,7 +26,8 @@ import {
   HelpCircle,
   Clock,
   Save,
-  AlertCircle
+  AlertCircle,
+  Zap
 } from 'lucide-react';
 import {
   firebaseService,
@@ -1362,6 +1363,35 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onSelectItem }) 
                 className="px-3.5 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-xs font-semibold text-slate-700 cursor-pointer"
               >
                 Export Claims
+              </button>
+            </div>
+          </div>
+
+          {/* Database Health & Diagnostic Tool */}
+          <div className="p-6 bg-slate-50 border border-slate-200 rounded-3xl space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Database className="w-5 h-5 text-emerald-600" />
+                <h3 className="font-bold text-slate-900 text-base">Database Health & Live Verification</h3>
+              </div>
+              <span className="text-xs font-mono text-slate-500">Firestore status checker</span>
+            </div>
+            <p className="text-xs text-slate-600 leading-relaxed">
+              Verify if this app is writing directly to Google Cloud Firestore or caching in local browser memory. Test the server ping latency and inspect live credentials.
+            </p>
+
+            <div className="pt-1">
+              <button
+                type="button"
+                onClick={() => {
+                  // Trigger open diagnostics modal
+                  const event = new CustomEvent('open-db-diagnostics');
+                  window.dispatchEvent(event);
+                }}
+                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs shadow-2xs flex items-center gap-2 cursor-pointer"
+              >
+                <Zap className="w-4 h-4" />
+                <span>Open Live Database Diagnostics &amp; Latency Test</span>
               </button>
             </div>
           </div>

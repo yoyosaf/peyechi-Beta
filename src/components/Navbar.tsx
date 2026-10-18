@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { PlusCircle, User as UserIcon, Globe, Shield, LogOut, Menu, X } from 'lucide-react';
+import { PlusCircle, User as UserIcon, Globe, Shield, LogOut, Menu, X, Database } from 'lucide-react';
 import { PeyechiLogo } from './PeyechiLogo';
 import { useLanguage } from '../context/LanguageContext';
 import { useAuth } from '../context/AuthContext';
+import { isFirebaseConfigured, getActiveFirebaseConfig } from '../lib/firebase';
 
 interface NavbarProps {
   currentTab: string;
@@ -76,6 +77,23 @@ export const Navbar: React.FC<NavbarProps> = ({
               <span>{language === 'en' ? 'বাং' : 'EN'}</span>
             </button>
 
+            {/* Cloud Database Connection Status Indicator */}
+            <button
+              onClick={() => window.dispatchEvent(new CustomEvent('open-db-diagnostics'))}
+              title={`Database Status: ${isFirebaseConfigured() ? 'Cloud Firestore Connected (' + (getActiveFirebaseConfig().projectId || '') + ')' : 'Local Machine Mode - Click to connect Firebase'}`}
+              className={`flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold rounded-lg border transition-colors cursor-pointer ${
+                isFirebaseConfigured()
+                  ? 'bg-emerald-50 text-emerald-800 border-emerald-200 hover:bg-emerald-100'
+                  : 'bg-amber-50 text-amber-800 border-amber-200 hover:bg-amber-100'
+              }`}
+            >
+              <span className={`w-2 h-2 rounded-full shrink-0 ${isFirebaseConfigured() ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'}`} />
+              <Database className="w-3.5 h-3.5 shrink-0" />
+              <span className="hidden sm:inline font-mono text-[11px]">
+                {isFirebaseConfigured() ? 'Cloud DB' : 'Local DB'}
+              </span>
+            </button>
+
             {/* Post Item Primary CTA */}
             <button
               onClick={onOpenReport}
@@ -143,6 +161,17 @@ export const Navbar: React.FC<NavbarProps> = ({
                       </button>
                     )}
 
+                    <button
+                      onClick={() => {
+                        window.dispatchEvent(new CustomEvent('open-db-diagnostics'));
+                        setUserMenuOpen(false);
+                      }}
+                      className="w-full text-left px-3 py-2 hover:bg-slate-50 flex items-center gap-2 text-slate-600 cursor-pointer"
+                    >
+                      <Database className="w-3.5 h-3.5 text-slate-400" />
+                      <span>Database Status</span>
+                    </button>
+
                     <div className="border-t border-slate-100 my-1"></div>
 
                     <button
@@ -196,6 +225,24 @@ export const Navbar: React.FC<NavbarProps> = ({
                 {link.label}
               </button>
             ))}
+            <button
+              onClick={() => {
+                window.dispatchEvent(new CustomEvent('open-db-diagnostics'));
+                setMobileMenuOpen(false);
+              }}
+              className="w-full text-left px-3 py-2 text-sm rounded-lg flex items-center justify-between text-slate-700 hover:bg-slate-50 cursor-pointer"
+            >
+              <span className="flex items-center gap-2">
+                <Database className="w-4 h-4 text-emerald-600" />
+                <span>Database Connection</span>
+              </span>
+              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                isFirebaseConfigured() ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
+              }`}>
+                {isFirebaseConfigured() ? 'Cloud DB' : 'Local'}
+              </span>
+            </button>
+
             <div className="pt-2">
               <button
                 onClick={() => {

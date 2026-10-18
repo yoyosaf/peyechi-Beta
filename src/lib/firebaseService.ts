@@ -228,32 +228,43 @@ export const firebaseService = {
     if (isFirebaseConfigured() && db) {
       try {
         const colRef = collection(db, 'posts');
-        const constraints = [];
+        let snap;
+        try {
+          const q = query(colRef, orderBy('createdAt', 'desc'), limit(options?.limitCount || 100));
+          snap = await getDocs(q);
+        } catch {
+          snap = await getDocs(colRef);
+        }
+
+        // If Firestore is completely fresh and empty, seed initial Bangladesh listings
+        if (snap.empty) {
+          try {
+            await firebaseService.seedInitialData();
+            const reSnap = await getDocs(colRef);
+            snap = reSnap;
+          } catch (seedErr) {
+            console.warn('Auto-seed notice:', seedErr);
+          }
+        }
+
+        let list = snap.docs.map((d) => ({ id: d.id, ...d.data() } as PostDocument));
 
         if (options?.status && options.status !== 'ALL') {
-          constraints.push(where('status', '==', options.status));
+          list = list.filter((p) => p.status === options.status);
         }
         if (options?.postType && options.postType !== 'ALL') {
-          constraints.push(where('postType', '==', options.postType));
+          list = list.filter((p) => p.postType === options.postType);
         }
         if (options?.category && options.category !== 'all') {
-          constraints.push(where('category', '==', options.category));
+          list = list.filter((p) => p.category === options.category);
         }
         if (options?.division) {
-          constraints.push(where('division', '==', options.division));
+          list = list.filter((p) => p.division === options.division);
         }
         if (options?.userId) {
-          constraints.push(where('userId', '==', options.userId));
+          list = list.filter((p) => p.userId === options.userId);
         }
-
-        constraints.push(orderBy('createdAt', 'desc'));
-        if (options?.limitCount) {
-          constraints.push(limit(options.limitCount));
-        }
-
-        const q = query(colRef, ...constraints);
-        const snap = await getDocs(q);
-        return snap.docs.map((d) => ({ id: d.id, ...d.data() } as PostDocument));
+        return list;
       } catch (err) {
         console.warn('Firestore query error, falling back to local cache:', err);
       }
@@ -876,5 +887,130 @@ export const firebaseService = {
 
     await firebaseService.deleteMultiplePosts(postIds, actor, 'Permanent whole-database purge: DELETE ALL POSTS');
     return postIds.length;
+  },
+
+  seedInitialData: async (): Promise<void> => {
+    if (!isFirebaseConfigured() || !db) return;
+
+    const initialPosts: PostDocument[] = [
+      {
+        id: 'post_bd_01',
+        userId: 'usr_seed_1',
+        authorName: 'Shahriar Khan',
+        postType: 'FOUND',
+        category: 'documents',
+        title: 'National Identity Card (NID) of Md. Rafiqul Islam',
+        description: 'Smart NID card found in passenger seat. First name is Md. Rafiqul. Partial NID ending in 4920. Owner please verify date of birth or father’s name.',
+        division: 'Dhaka',
+        district: 'Dhaka',
+        upazilaThana: 'Mirpur',
+        generalLocation: 'Found inside a bus on Mirpur 10 roundabout',
+        eventDate: '2026-10-14',
+        status: 'APPROVED',
+        imageUrls: ['https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=800&q=80'],
+        preferredContactMethod: 'PLATFORM_CLAIM',
+        secretQuestion: 'What is the year of birth or father\'s name on the card?',
+        reward: 0,
+        createdAt: '2026-10-14T08:30:00Z',
+        updatedAt: '2026-10-14T08:30:00Z',
+        viewsCount: 84
+      },
+      {
+        id: 'post_bd_02',
+        userId: 'usr_seed_2',
+        authorName: 'Tanvir Hossain',
+        postType: 'LOST',
+        category: 'wallets',
+        title: 'Black Leather Men’s Wallet with Cards & Cash',
+        description: 'Lost a dark brown/black leather wallet containing Eastern Bank VISA card, Dhaka University library card, and approximate cash. Reward offered for safe return!',
+        division: 'Dhaka',
+        district: 'Dhaka',
+        upazilaThana: 'Dhanmondi',
+        generalLocation: 'Near Dhanmondi 27 Star Kabab / Meena Bazar area',
+        eventDate: '2026-10-15',
+        status: 'APPROVED',
+        imageUrls: ['https://images.unsplash.com/photo-1627123424574-724758594e93?auto=format&fit=crop&w=800&q=80'],
+        preferredContactMethod: 'PHONE',
+        reward: 2000,
+        createdAt: '2026-10-15T11:15:00Z',
+        updatedAt: '2026-10-15T11:15:00Z',
+        viewsCount: 142
+      },
+      {
+        id: 'post_bd_03',
+        userId: 'usr_seed_3',
+        authorName: 'Anika Rahman',
+        postType: 'FOUND',
+        category: 'electronics',
+        title: 'Apple iPhone 13 (Blue Color, Clear Case)',
+        description: 'iPhone 13 with blue frame found on a dining table. Battery was around 40%. Screen has privacy protector. Kept safely in hand.',
+        division: 'Dhaka',
+        district: 'Dhaka',
+        upazilaThana: 'Badda',
+        generalLocation: 'Jamuna Future Park 5th Floor Food Court table',
+        eventDate: '2026-10-13',
+        status: 'APPROVED',
+        imageUrls: ['https://images.unsplash.com/photo-1591337676887-a217a6970a8a?auto=format&fit=crop&w=800&q=80'],
+        preferredContactMethod: 'PLATFORM_CLAIM',
+        secretQuestion: 'What picture is set as the lock-screen wallpaper, or can you unlock with passcode?',
+        reward: 0,
+        createdAt: '2026-10-13T14:20:00Z',
+        updatedAt: '2026-10-13T14:20:00Z',
+        viewsCount: 295
+      },
+      {
+        id: 'post_bd_04',
+        userId: 'usr_seed_4',
+        authorName: 'Mohiuddin Chy',
+        postType: 'LOST',
+        category: 'keys',
+        title: 'Honda CB Hornet Motorcycle Key with Red Ribbon',
+        description: 'A single bike key attached with a red branded Honda fabric keychain. Urgent for daily commute.',
+        division: 'Chattogram',
+        district: 'Chattogram',
+        upazilaThana: 'Agrabad',
+        generalLocation: 'Near Agrabad Commercial Area Badamtali intersection',
+        eventDate: '2026-10-12',
+        status: 'APPROVED',
+        imageUrls: [],
+        preferredContactMethod: 'PHONE',
+        reward: 500,
+        createdAt: '2026-10-12T09:45:00Z',
+        updatedAt: '2026-10-12T09:45:00Z',
+        viewsCount: 63
+      },
+      {
+        id: 'post_bd_05',
+        userId: 'usr_seed_5',
+        authorName: 'Sadia Jahan',
+        postType: 'LOST',
+        category: 'pets',
+        title: 'Persian White Cat with Blue Collar (Name: Casper)',
+        description: '1 year old male Persian white cat, very friendly, wearing a light blue safety collar with a small bell. Family is desperately searching.',
+        division: 'Dhaka',
+        district: 'Dhaka',
+        upazilaThana: 'Uttara',
+        generalLocation: 'Sector 4, Road 7 park vicinity',
+        eventDate: '2026-10-15',
+        status: 'APPROVED',
+        imageUrls: ['https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?auto=format&fit=crop&w=800&q=80'],
+        preferredContactMethod: 'PHONE',
+        reward: 5000,
+        createdAt: '2026-10-15T07:10:00Z',
+        updatedAt: '2026-10-15T07:10:00Z',
+        viewsCount: 312
+      }
+    ];
+
+    try {
+      const batch = writeBatch(db);
+      for (const p of initialPosts) {
+        batch.set(doc(db, 'posts', p.id), p);
+      }
+      await batch.commit();
+      console.log('✅ Initial Bangladesh listings seeded into Cloud Firestore successfully');
+    } catch (err) {
+      console.warn('Initial seed write failed:', err);
+    }
   }
 };

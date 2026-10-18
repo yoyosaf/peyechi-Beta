@@ -1,0 +1,182 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User account profile for Peyechi platform",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "displayName": { "type": "string", "maxLength": 100 },
+        "email": { "type": "string", "maxLength": 200 },
+        "photoURL": { "type": "string", "maxLength": 1000 },
+        "phoneNumber": { "type": "string", "maxLength": 30 },
+        "preferredLanguage": { "type": "string", "enum": ["bn", "en"] },
+        "role": { "type": "string", "enum": ["USER", "MODERATOR", "ADMIN"] },
+        "status": { "type": "string", "enum": ["ACTIVE", "SUSPENDED"] },
+        "emailVerified": { "type": "boolean" },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" },
+        "lastLoginAt": { "type": "string" }
+      },
+      "required": ["uid", "displayName", "email", "role", "status", "createdAt", "updatedAt"]
+    },
+    "Post": {
+      "title": "Post",
+      "description": "Lost or found item listing",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "authorName": { "type": "string", "maxLength": 100 },
+        "postType": { "type": "string", "enum": ["LOST", "FOUND"] },
+        "category": { "type": "string", "maxLength": 50 },
+        "title": { "type": "string", "maxLength": 200 },
+        "description": { "type": "string", "maxLength": 3000 },
+        "division": { "type": "string", "maxLength": 50 },
+        "district": { "type": "string", "maxLength": 50 },
+        "upazilaThana": { "type": "string", "maxLength": 100 },
+        "generalLocation": { "type": "string", "maxLength": 200 },
+        "eventDate": { "type": "string", "maxLength": 20 },
+        "status": { "type": "string", "enum": ["PENDING", "APPROVED", "REJECTED", "RESOLVED"] },
+        "imageUrls": { "type": "array" },
+        "preferredContactMethod": { "type": "string", "enum": ["PHONE", "EMAIL", "PLATFORM_CLAIM"] },
+        "secretQuestion": { "type": "string", "maxLength": 300 },
+        "reward": { "type": "number" },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" },
+        "resolvedAt": { "type": "string" },
+        "viewsCount": { "type": "number" },
+        "rejectionReason": { "type": "string", "maxLength": 500 },
+        "moderationNotes": { "type": "string", "maxLength": 1000 }
+      },
+      "required": ["id", "userId", "authorName", "postType", "category", "title", "division", "district", "upazilaThana", "status", "createdAt", "updatedAt"]
+    },
+    "PrivateContact": {
+      "title": "PrivateContact",
+      "description": "Private contact details associated with a post",
+      "type": "object",
+      "properties": {
+        "postId": { "type": "string" },
+        "userId": { "type": "string" },
+        "contactMethod": { "type": "string", "maxLength": 50 },
+        "contactInfo": { "type": "string", "maxLength": 200 },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["postId", "userId", "contactMethod", "contactInfo", "createdAt", "updatedAt"]
+    },
+    "Claim": {
+      "title": "Claim",
+      "description": "Item ownership or recovery verification claim",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "postId": { "type": "string" },
+        "postTitle": { "type": "string", "maxLength": 200 },
+        "claimantUserId": { "type": "string" },
+        "claimantName": { "type": "string", "maxLength": 100 },
+        "verificationDetails": { "type": "string", "maxLength": 2000 },
+        "contactMethod": { "type": "string", "maxLength": 50 },
+        "contactInfo": { "type": "string", "maxLength": 200 },
+        "status": { "type": "string", "enum": ["PENDING", "UNDER_REVIEW", "APPROVED", "REJECTED", "WITHDRAWN"] },
+        "moderatorNotes": { "type": "string", "maxLength": 1000 },
+        "finderNotes": { "type": "string", "maxLength": 1000 },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["id", "postId", "claimantUserId", "claimantName", "verificationDetails", "status", "createdAt", "updatedAt"]
+    },
+    "Report": {
+      "title": "Report",
+      "description": "Report on suspicious post, scam, or violation",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "postId": { "type": "string" },
+        "postTitle": { "type": "string", "maxLength": 200 },
+        "reporterUserId": { "type": "string" },
+        "reporterName": { "type": "string", "maxLength": 100 },
+        "reason": { "type": "string", "maxLength": 200 },
+        "description": { "type": "string", "maxLength": 2000 },
+        "status": { "type": "string", "enum": ["PENDING", "RESOLVED", "DISMISSED"] },
+        "adminNotes": { "type": "string", "maxLength": 1000 },
+        "createdAt": { "type": "string" },
+        "resolvedAt": { "type": "string" },
+        "resolvedBy": { "type": "string" }
+      },
+      "required": ["id", "postId", "reporterUserId", "reason", "description", "status", "createdAt"]
+    },
+    "ModerationLog": {
+      "title": "ModerationLog",
+      "description": "Administrative and moderation audit log entry",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "actorUid": { "type": "string" },
+        "actorName": { "type": "string", "maxLength": 100 },
+        "action": { "type": "string", "maxLength": 100 },
+        "targetType": { "type": "string", "maxLength": 50 },
+        "targetId": { "type": "string", "maxLength": 100 },
+        "reason": { "type": "string", "maxLength": 1000 },
+        "timestamp": { "type": "string" },
+        "metadata": { "type": "object" }
+      },
+      "required": ["id", "actorUid", "actorName", "action", "targetType", "targetId", "timestamp"]
+    },
+    "SiteSettings": {
+      "title": "SiteSettings",
+      "description": "Global website configuration settings",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "siteName": { "type": "string", "maxLength": 100 },
+        "siteDescription": { "type": "string", "maxLength": 300 },
+        "supportEmail": { "type": "string", "maxLength": 100 },
+        "maintenanceMode": { "type": "boolean" },
+        "allowNewRegistrations": { "type": "boolean" },
+        "requirePostApproval": { "type": "boolean" },
+        "maxImagesPerPost": { "type": "number" },
+        "allowedImageTypes": { "type": "array" },
+        "maxImageSize": { "type": "number" },
+        "defaultLanguage": { "type": "string", "enum": ["bn", "en"] },
+        "updatedAt": { "type": "string" },
+        "updatedBy": { "type": "string" }
+      },
+      "required": ["id", "siteName", "supportEmail", "defaultLanguage", "updatedAt", "updatedBy"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User profiles indexed by UID"
+    },
+    "/posts/{postId}": {
+      "schema": "Post",
+      "description": "Lost and found item listings"
+    },
+    "/privateContacts/{postId}": {
+      "schema": "PrivateContact",
+      "description": "Private contact details for a post, restricted to author and admins"
+    },
+    "/claims/{claimId}": {
+      "schema": "Claim",
+      "description": "Ownership claims filed on found or lost posts"
+    },
+    "/reports/{reportId}": {
+      "schema": "Report",
+      "description": "Reports filed against suspicious or scam posts"
+    },
+    "/moderationLogs/{logId}": {
+      "schema": "ModerationLog",
+      "description": "Audit trail for admin and moderation actions"
+    },
+    "/siteSettings/{settingsId}": {
+      "schema": "SiteSettings",
+      "description": "System-wide settings"
+    },
+    "/admins/{adminUid}": {
+      "schema": "object",
+      "description": "Authorized administrator lookup collection"
+    }
+  }
+}

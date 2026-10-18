@@ -1,0 +1,94 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+    function incoming() { return request.resource.data; }
+    function existing() { return resource.data; }
+    function isSignedIn() { return request.auth != null; }
+    function isOwner(userId) { return isSignedIn() && request.auth.uid == userId; }
+    function isAdmin() {
+      return (
+        isSignedIn() && (
+          exists(/databases/$(database)/documents/admins/$(request.auth.uid)) ||
+          request.auth.token.email == 'babayoyosaf@gmail.com'
+        )
+      );
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Admins collection
+    match /admins/{adminUid} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    // Site Settings
+    match /siteSettings/{settingId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Users
+    match /users/{userId} {
+      allow read: if true;
+      allow create: if true;
+      allow update: if (
+        (isSignedIn() && request.auth.uid == userId && !incoming().diff(existing()).affectedKeys().hasAny(['role', 'status'])) ||
+        isAdmin()
+      );
+      allow delete: if isAdmin();
+    }
+
+    // Posts
+    match /posts/{postId} {
+      allow read: if true;
+      allow create: if isValidId(postId) && incoming().title is string;
+      allow update: if (
+        (isSignedIn() && existing().userId == request.auth.uid && incoming().userId == existing().userId) ||
+        isAdmin() ||
+        incoming().diff(existing()).affectedKeys().hasOnly(['viewsCount'])
+      );
+      allow delete: if (isSignedIn() && (existing().userId == request.auth.uid || isAdmin())) || isAdmin();
+    }
+
+    // Private Contacts
+    match /privateContacts/{postId} {
+      allow read: if (isSignedIn() && resource.data.userId == request.auth.uid) || isAdmin();
+      allow create: if true;
+      allow update: if (isSignedIn() && existing().userId == request.auth.uid) || isAdmin();
+      allow delete: if (isSignedIn() && existing().userId == request.auth.uid) || isAdmin();
+    }
+
+    // Claims
+    match /claims/{claimId} {
+      allow read: if (isSignedIn() && resource.data.claimantUserId == request.auth.uid) || isAdmin();
+      allow create: if isValidId(claimId);
+      allow update: if (
+        (isSignedIn() && existing().claimantUserId == request.auth.uid && incoming().diff(existing()).affectedKeys().hasOnly(['status', 'updatedAt', 'verificationDetails'])) ||
+        isAdmin()
+      );
+      allow delete: if (isSignedIn() && existing().claimantUserId == request.auth.uid) || isAdmin();
+    }
+
+    // Reports
+    match /reports/{reportId} {
+      allow read: if isAdmin();
+      allow create: if isValidId(reportId);
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // Moderation Logs
+    match /moderationLogs/{logId} {
+      allow read: if isAdmin();
+      allow create: if true;
+      allow update, delete: if false;
+    }
+  }
+}
