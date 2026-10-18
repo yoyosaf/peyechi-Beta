@@ -26,6 +26,31 @@ import {
   OperationType
 } from './firebase';
 
+/**
+ * Strips all undefined properties from an object recursively.
+ * Firestore strictly rejects undefined in any document write (setDoc, updateDoc, batch.set).
+ */
+export function cleanForFirestore<T>(data: T): T {
+  if (data === null || data === undefined) {
+    return data;
+  }
+  if (Array.isArray(data)) {
+    return data
+      .filter((item) => item !== undefined)
+      .map((item) => cleanForFirestore(item)) as unknown as T;
+  }
+  if (typeof data === 'object' && !(data instanceof Date)) {
+    const cleaned: Record<string, any> = {};
+    for (const [key, value] of Object.entries(data)) {
+      if (value !== undefined) {
+        cleaned[key] = cleanForFirestore(value);
+      }
+    }
+    return cleaned as T;
+  }
+  return data;
+}
+
 export interface UserProfile {
   uid: string;
   displayName: string;
@@ -339,7 +364,7 @@ export const firebaseService = {
       try {
         const batch = writeBatch(db);
         const postDocRef = doc(db, 'posts', newPost.id);
-        batch.set(postDocRef, newPost);
+        batch.set(postDocRef, cleanForFirestore(newPost));
 
         const contactDocRef = doc(db, 'privateContacts', newPost.id);
         const contactData: PrivateContact = {
@@ -350,7 +375,7 @@ export const firebaseService = {
           createdAt: newPost.createdAt,
           updatedAt: newPost.updatedAt
         };
-        batch.set(contactDocRef, contactData);
+        batch.set(contactDocRef, cleanForFirestore(contactData));
 
         await batch.commit();
       } catch (err) {
@@ -388,7 +413,7 @@ export const firebaseService = {
 
     if (isFirebaseConfigured() && db) {
       try {
-        await updateDoc(doc(db, 'posts', id), payload);
+        await updateDoc(doc(db, 'posts', id), cleanForFirestore(payload));
       } catch (err) {
         handleFirestoreError(err, OperationType.UPDATE, 'posts/' + id);
       }
@@ -598,7 +623,7 @@ export const firebaseService = {
 
     if (isFirebaseConfigured() && db) {
       try {
-        await setDoc(doc(db, 'claims', newClaim.id), newClaim);
+        await setDoc(doc(db, 'claims', newClaim.id), cleanForFirestore(newClaim));
       } catch (err) {
         handleFirestoreError(err, OperationType.CREATE, 'claims/' + newClaim.id);
       }
@@ -622,12 +647,12 @@ export const firebaseService = {
     const updates: Partial<ClaimDocument> = {
       status,
       updatedAt: timestamp,
-      moderatorNotes: moderatorNotes || undefined
+      ...(moderatorNotes ? { moderatorNotes } : {})
     };
 
     if (isFirebaseConfigured() && db) {
       try {
-        await updateDoc(doc(db, 'claims', id), updates);
+        await updateDoc(doc(db, 'claims', id), cleanForFirestore(updates));
       } catch (err) {
         handleFirestoreError(err, OperationType.UPDATE, 'claims/' + id);
       }
@@ -680,7 +705,7 @@ export const firebaseService = {
 
     if (isFirebaseConfigured() && db) {
       try {
-        await setDoc(doc(db, 'reports', newReport.id), newReport);
+        await setDoc(doc(db, 'reports', newReport.id), cleanForFirestore(newReport));
       } catch (err) {
         handleFirestoreError(err, OperationType.CREATE, 'reports/' + newReport.id);
       }
@@ -705,7 +730,7 @@ export const firebaseService = {
 
     if (isFirebaseConfigured() && db) {
       try {
-        await updateDoc(doc(db, 'reports', id), updates);
+        await updateDoc(doc(db, 'reports', id), cleanForFirestore(updates));
       } catch (err) {
         handleFirestoreError(err, OperationType.UPDATE, 'reports/' + id);
       }
@@ -756,7 +781,7 @@ export const firebaseService = {
 
     if (isFirebaseConfigured() && db) {
       try {
-        await setDoc(doc(db, 'moderationLogs', newLog.id), newLog);
+        await setDoc(doc(db, 'moderationLogs', newLog.id), cleanForFirestore(newLog));
       } catch (err) {
         console.warn('Failed to record moderation log in Firestore:', err);
       }
@@ -1005,7 +1030,7 @@ export const firebaseService = {
     try {
       const batch = writeBatch(db);
       for (const p of initialPosts) {
-        batch.set(doc(db, 'posts', p.id), p);
+        batch.set(doc(db, 'posts', p.id), cleanForFirestore(p));
       }
       await batch.commit();
       console.log('✅ Initial Bangladesh listings seeded into Cloud Firestore successfully');

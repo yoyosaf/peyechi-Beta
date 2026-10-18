@@ -115,25 +115,31 @@ export const ReportItemPage: React.FC<ReportItemPageProps> = ({
         finalImageUrl = await firebaseService.uploadImage(imageFile, user.uid, (p) => setUploadProgress(p));
       }
 
+      // Prepare clean post document without undefined keys
+      const parsedReward = reward ? parseInt(reward, 10) : 0;
+      const trimmedSecret = secretQuestion.trim();
+
+      const postPayload = {
+        userId: user?.uid || 'usr_guest_' + Date.now(),
+        authorName: contactName.trim(),
+        postType: type === 'lost' ? ('LOST' as const) : ('FOUND' as const),
+        category,
+        title: title.trim(),
+        description: description.trim(),
+        division,
+        district,
+        upazilaThana: thana,
+        generalLocation: areaDetails.trim(),
+        eventDate: date,
+        imageUrls: finalImageUrl ? [finalImageUrl] : [],
+        preferredContactMethod: hidePhonePublicly ? ('PLATFORM_CLAIM' as const) : ('PHONE' as const),
+        ...(trimmedSecret ? { secretQuestion: trimmedSecret } : {}),
+        ...(parsedReward > 0 ? { reward: parsedReward } : {})
+      };
+
       // Save via firebaseService
       const postDoc = await firebaseService.createPost(
-        {
-          userId: user?.uid || 'usr_guest_' + Date.now(),
-          authorName: contactName.trim(),
-          postType: type === 'lost' ? 'LOST' : 'FOUND',
-          category,
-          title: title.trim(),
-          description: description.trim(),
-          division,
-          district,
-          upazilaThana: thana,
-          generalLocation: areaDetails.trim(),
-          eventDate: date,
-          imageUrls: finalImageUrl ? [finalImageUrl] : [],
-          preferredContactMethod: hidePhonePublicly ? 'PLATFORM_CLAIM' : 'PHONE',
-          secretQuestion: secretQuestion.trim() || undefined,
-          reward: reward ? parseInt(reward, 10) : undefined
-        },
+        postPayload,
         {
           contactMethod: hidePhonePublicly ? 'PLATFORM_CLAIM' : 'PHONE',
           contactInfo: contactPhone.trim()
@@ -156,8 +162,8 @@ export const ReportItemPage: React.FC<ReportItemPageProps> = ({
         date,
         description: description.trim(),
         imageUrl: finalImageUrl || undefined,
-        secretQuestion: secretQuestion.trim() || undefined,
-        reward: reward ? parseInt(reward, 10) : undefined,
+        ...(trimmedSecret ? { secretQuestion: trimmedSecret } : {}),
+        ...(parsedReward > 0 ? { reward: parsedReward } : {}),
         contactName: contactName.trim(),
         contactPhone: contactPhone.trim(),
         contactEmail: contactEmail.trim(),
@@ -169,7 +175,20 @@ export const ReportItemPage: React.FC<ReportItemPageProps> = ({
       onSuccess(created.id || postDoc.id);
     } catch (err: unknown) {
       setSubmitting(false);
-      setError((err as Error).message || 'An error occurred while saving the report.');
+      let userFriendlyMsg = 'পোস্ট তৈরি করতে সমস্যা হয়েছে। অনুগ্রহ করে পুনরায় চেষ্টা করুন।';
+      if (err instanceof Error) {
+        try {
+          if (err.message.startsWith('{')) {
+            const parsed = JSON.parse(err.message);
+            userFriendlyMsg = parsed.error || err.message;
+          } else {
+            userFriendlyMsg = err.message;
+          }
+        } catch {
+          userFriendlyMsg = err.message;
+        }
+      }
+      setError(userFriendlyMsg);
     }
   };
 

@@ -238,8 +238,8 @@ export const DatabaseStatusModal: React.FC<DatabaseStatusModalProps> = ({
               eventDate: p.eventDate,
               imageUrls: p.imageUrls || [],
               preferredContactMethod: p.preferredContactMethod || 'PHONE',
-              secretQuestion: p.secretQuestion,
-              reward: p.reward
+              ...(p.secretQuestion ? { secretQuestion: p.secretQuestion } : {}),
+              ...(p.reward ? { reward: p.reward } : {})
             },
             {
               contactMethod: p.preferredContactMethod || 'PHONE',
